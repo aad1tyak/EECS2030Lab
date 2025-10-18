@@ -1,5 +1,7 @@
 package lab3;
 
+import java.util.ArrayList;
+
 /**
  * Represents a scoring format for a sports league.
  * This class is composed within a League (composition relationship).
@@ -26,8 +28,11 @@ class ScoringFormat {
      * @param receptionPoints points awarded per reception
      * @param yardsPerPoint yards needed per point
      */
-	private ScoringFormat(String formatString, String touchdownPoints, int receptionPoints, double yardsPerPoint) {
-		
+	private ScoringFormat(String formatName, int touchdownPoints, double receptionPoints, double yardsPerPoint) {
+	  this.formatName = formatName;
+    this.touchdownPoints = touchdownPoints;
+    this.receptionPoints = receptionPoints;
+    this.yardsPerPoint = yardsPerPoint;
 	}
     
 	
@@ -40,7 +45,10 @@ class ScoringFormat {
      */
     
 	private ScoringFormat(ScoringFormat other) {
-		
+    this.formatName = other.formatName;
+    this.touchdownPoints = other.touchdownPoints;
+    this.receptionPoints = other.receptionPoints;
+    this.yardsPerPoint = other.yardsPerPoint;
 	}
     
     /**
@@ -51,7 +59,8 @@ class ScoringFormat {
      * @return a new deep copy of the ScoringFormat
      */
     ScoringFormat createCopy(ScoringFormat other) {
-    	
+      ScoringFormat newScoringFormat = new ScoringFormat(other);
+      return newScoringFormat;
     }
 	
 	
@@ -63,9 +72,9 @@ class ScoringFormat {
      * 
      * @return a new ScoringFormat with Standard settings
      */
-    public ScoringFormat createStandingScoring() {
-		
-	}
+    public static ScoringFormat createStandardScoring() {
+      return new ScoringFormat("Standard", 6, 0, 0.1);
+}
 	
     
 
@@ -75,8 +84,8 @@ class ScoringFormat {
      * 
      * @return a new ScoringFormat with PPR settings
      */
-    public ScoringFormat createPPRScoring() {
-	
+    public static ScoringFormat createPPRScoring() {
+      return new ScoringFormat("PPR", 6, 1, 0.1);
     }
 	
     
@@ -87,8 +96,9 @@ class ScoringFormat {
      * 
      * @return a new ScoringFormat with Half-PPR settings
      */
-    public ScoringFormat createHalfPPRScoring() {
-	
+    public static ScoringFormat createHalfPPRScoring() {
+      return new ScoringFormat("Half-PPR", 6, 0.5, 0.1);
+
     }
     
 
@@ -108,19 +118,21 @@ class ScoringFormat {
    public double getReceptionPoints() {
 	   return this.receptionPoints;
    }
-   public void setReceptionPoints(int receptionPoints) {
+   public void setReceptionPoints(double receptionPoints) {
 	   this.receptionPoints = receptionPoints;
    }
-   public double getYardPerPoint() {
-	   return this.yardPerPoint;
+   public double getYardsPerPoint() {
+	   return this.yardsPerPoint;
    }
-   public void setYardPerPoint(double yardPerPoints) {
-	   this.yardPerPoints = yardPerPoints;
+   public void setYardsPerPoint(double yardsPerPoints) {
+	   this.yardsPerPoint = yardsPerPoints;
    }
    public double calculatePoints(int touchdowns, int receptions, int yards) {
-
+     return (touchdowns * this.touchdownPoints) + (receptions * receptionPoints) + (yards * yardsPerPoint);
    }
    public String toString() {
+     return String.format("%s: %d points per TD, %f point per reception, %f yards per point", this.formatName, this.touchdownPoints, this.receptionPoints, this.yardsPerPoint);
+
    }
     
 }
@@ -135,7 +147,7 @@ class Athlete {
 	//Attributes
 
     private String athleteId;
-    private String firstname;
+    private String firstName;
     private String lastName;
     private String position;
     private String proTeam;
@@ -151,6 +163,11 @@ class Athlete {
      * @param proTeam athlete's professional team
      */
    public Athlete(String athleteId, String firstName, String lastName, String position, String proTeam) {
+     this.athleteId = athleteId;
+     this.firstName= firstName;
+     this.lastName = lastName;
+     this.position = position;
+     this.proTeam = proTeam;
    }
 
 
@@ -160,6 +177,13 @@ class Athlete {
      * @param other the Athlete to copy
      */
    public Athlete(Athlete other) {
+     this.athleteId = other.athleteId;
+     this.firstName = other.firstName;
+     this.lastName = other.lastName;
+     this.position = other.position;
+     this.proTeam = other.proTeam;
+     this.weeklyPoints = other.weeklyPoints;
+     this.seasonPoints = other.seasonPoints;
    }
 
     /**
@@ -173,6 +197,8 @@ class Athlete {
      * @return a new Athlete instance
      */
    public static Athlete createAthlete(String athleteId, String firstName, String lastName, String position, String proTeam) {
+     Athlete newAthlete = new Athlete(athleteId, firstName, lastName, position, proTeam);
+     return newAthlete;
    }
    
 
@@ -237,7 +263,8 @@ class Athlete {
 
 
   public void updateWeeklyStats(double points) {
-
+    this.weeklyPoints = points;
+    this.seasonPoints += points;
   }
 
   public String getFullName() {
@@ -245,7 +272,7 @@ class Athlete {
   }
 
   public String toString() {
-	  
+	  return String.format("Athlete Id: %s, First Name: %s, Last Name: %s, Position: %s, ProTeam: %s, Weekly Points: %f, Season Points: %f", this.athleteId, this.firstName, this.lastName, this.position, this.proTeam, this.weeklyPoints, this.seasonPoints);
   }
 
 
@@ -265,7 +292,7 @@ class Team {
    private String teamName;
    private String ownerName;
    private String logoColor;
-   private ArrayList<Athlete>;
+   private ArrayList<Athlete> roster;
    private int wins;
    private int losses;
    private double totalPoints;
@@ -278,6 +305,11 @@ class Team {
      * @param logoColor team's logo color
      */
   public Team(String teamId, String teamName, String ownerName, String logoColor) {
+    this.teamId = teamId;
+    this.teamName = teamName;
+    this.ownerName = ownerName;
+    this.logoColor = logoColor;
+    this.roster = new ArrayList<Athlete>();
   }
 
 
@@ -287,6 +319,15 @@ class Team {
      * @param other the Team to copy
      */
   public Team(Team other) {
+    this.teamId = other.teamId;
+    this.teamName = other.teamName;
+    this.ownerName = other.ownerName;
+    this.logoColor = other.logoColor;
+    this.roster = new ArrayList<Athlete>(other.roster);
+    this.wins = other.wins;
+    this.losses = other.losses;
+    this.totalPoints = other.totalPoints;
+
   }
 
 
@@ -300,6 +341,7 @@ class Team {
      * @return a new Team instance
      */
   public static Team createTeam(String teamId, String teamName, String ownerName, String logoColor) {
+    return new Team(teamId, teamName, ownerName, logoColor);
   }
 
     // Getters and Setters
@@ -337,12 +379,16 @@ class Team {
   }
 
   public ArrayList<Athlete> getRoster() {
+    return this.roster;
 
   }
-
   public void setRoster(ArrayList<Athlete> roster) {
+	    this.roster = new ArrayList<Athlete>();
+	    for(Athlete athlete : roster) {
+	        this.roster.add(new Athlete(athlete)); // Deep copy each athlete
+	    }
+	}
 
-  }
 
   public int getWins() {
   	return this.wins;
@@ -371,30 +417,49 @@ class Team {
 
 
   public boolean addAthlete(Athlete athlete) {
-
+    if(this.roster.size() <= 16) {
+      this.roster.add(athlete);
+      return true;
+    }
+    else {
+      return false;
+    }
   }
 
   public boolean removeAthlete(String athleteId) {
-
+    for(Athlete rostee : this.roster) {
+      if (rostee.getAthleteId().equals(athleteId)) {
+        this.roster.remove(rostee);
+        return true;
+      }
+    }
+    return false;
   }
 
   public double calculateWeeklyScore() {
-
+    double totalWeeklyScore = 0.0;
+    for(Athlete rostee : this.roster) {
+      totalWeeklyScore += rostee.getWeeklyPoints();
+    }
+    return totalWeeklyScore;
   }
 
   public void recordWin() {
+    this.wins++;
 
   }
 
   public void recordLoss() {
-
+    this.losses++;
   }
 
   public double getWinPercentage() {
+    return ( this.wins * 100 ) / (this.wins + this.losses);
 
   }
 
   public String toString() {
+    return String.format("Team Id: %s, Team Name: %s, Owner Name: %s, Logo Color: %s, Wins: %d, losses: %d, Total Points: %f", this.teamId, this.teamName, this.ownerName, this.logoColor, this.wins, this.losses, this.totalPoints);
 
   }
 
@@ -425,8 +490,8 @@ public class League {
 	   this.leagueName = "Default League";
 	   this.commissionerName = "Commissioner";
 	   this.season = 2025;
-	   this.scoringFormat = new ScoringFormat;
-	   this.teams = new ArrayList<Teams>;
+	   this.scoringFormat = ScoringFormat.createStandardScoring();
+	   this.teams = new ArrayList<Team>();
 	   this.maxTeams = 10;
    } 
 
@@ -440,14 +505,28 @@ public class League {
      * @param scoringFormat the scoring format for the league (composition)
      * @param maxTeams maximum number of teams allowed
      */
-   public League(String leagueId, String leagueName, String commissionerName, ints season, ScoringFormat scoringFormat, int maxTeams) {}
+   public League(String leagueId, String leagueName, String commissionerName, int season, ScoringFormat scoringFormat, int maxTeams) {
+     this.leagueId = leagueId;
+     this.commissionerName = commissionerName;
+     this.season = season;
+     this.maxTeams = maxTeams;
+     this.scoringFormat = scoringFormat.createCopy(scoringFormat);
+   }
 
     /**
      * Copy constructor to create a deep copy of a League.
      * 
      * @param other the League to copy
      */
-    public League(League other) {}
+    public League(League other) {
+     this.leagueId = other.leagueId;
+     this.commissionerName = other.commissionerName;
+     this.season = other.season;
+     this.maxTeams = other.maxTeams;
+     this.scoringFormat = other.scoringFormat.createCopy(other.scoringFormat);
+     this.teams = other.teams;
+
+    }
 
     /**
      * Static factory method to create a League.
@@ -460,7 +539,9 @@ public class League {
      * @param maxTeams maximum number of teams allowed
      * @return a new League instance
      */
-    public static League createLeague(String leagueId, String leagueName, String commissionerName, int season, ScoringFormat scoringFormat, int maxTeams) {} 
+    public static League createLeague(String leagueId, String leagueName, String commissionerName, int season, ScoringFormat scoringFormat, int maxTeams) {
+      return new League(leagueId, leagueName, commissionerName, season, scoringFormat, maxTeams);
+    } 
 
     // Getters and Setters
    public String getLeagueId() {
@@ -507,7 +588,14 @@ public class League {
      * Gets a copy of the scoring format (composition - return deep copy).
      * 
      * @return a deep copy of the scoring format
-     */
+     */ 
+   public ScoringFormat getScoringFormat(){
+     return this.scoringFormat.createCopy(this.scoringFormat);
+   }
+
+   public ArrayList<Team> getTeams() {
+     return new ArrayList<Team>(this.teams);
+   }
    
 
     /**
@@ -515,15 +603,40 @@ public class League {
      * 
      * @param scoringFormat the new scoring format
      */
-    
+    public void setScoringFormat(ScoringFormat scoringFormat) {
+      this.scoringFormat = scoringFormat.createCopy(scoringFormat);
+    }
+
+    public void setTeams(ArrayList<Team> teams) {
+        this.teams = new ArrayList<Team>();
+        for(Team team : teams) {
+            this.teams.add(new Team(team)); // Deep copy
+        }
+    }
+
     public boolean addTeam(Team team) {
+      if(teams.size() < maxTeams){
+        teams.add(team);
+        return true;
+      }
+      else {
+        return false;
+      }
     }
 
     public boolean removeTeam(String teamId) {
+      for(Team team : this.teams) {
+        if(team.getTeamId().equals(teamId)){
+          this.teams.remove(team);
+          return true;
+        }
+      }
+      return false;
     }
 
-    public ArrayList<Team> getStandings() {}
 
-    public String toString() {}
+    public String toString() {
+      return String.format("League Id: %s, League Name: %s, Commissioner Name: %s, Season: %s, Max Teams: %d", this.leagueId, this.leagueName, this.commissionerName, this.season, this.maxTeams);
+    }
 
 }
