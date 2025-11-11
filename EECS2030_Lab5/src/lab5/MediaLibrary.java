@@ -28,6 +28,7 @@ class InvalidMediaFormatException extends Exception {
      * @param cause The underlying cause
      */ 
   public InvalidMediaFormatException(String message, Throwable cause) {
+    super(message, cause);
     this.message = message;
   }
    
@@ -39,7 +40,7 @@ class InvalidMediaFormatException extends Exception {
      */
     @Override
     public String getMessage() {
-        return "0";
+        return this.message;
     }
 }
 
@@ -54,8 +55,8 @@ class MediaNotFoundException extends Exception {
      * Constructor with title
      * @param title The title that was searched for
      */ 
-  public MediaNotFoundException(String message) {
-    this.message = message;
+  public MediaNotFoundException(String title) {
+    this.searchedTitle = title;
   }
     
 	
@@ -66,7 +67,8 @@ class MediaNotFoundException extends Exception {
      * @param cause The underlying cause
      */ 
   public MediaNotFoundException(String message, Throwable cause) {
-    this.message = message;
+    super(message, cause);
+    this.searchedTitle = "";
   }
     
 	
@@ -76,7 +78,7 @@ class MediaNotFoundException extends Exception {
      * @return The title that was searched for
      */
     public String getSearchedTitle() {
-        return "0";
+        return this.searchedTitle;
     }
 }
 
@@ -170,7 +172,7 @@ class Media {
      * @return Formatted display string
      */
     public String getDisplayInfo() {
-        return String.format("Media: %s by %s (%d)", this.title, this.creator, this.year);
+        return String.format("Media: %s by %s (%d)", this.title, this.creator, this.yearReleased);
     }
     
     /**
@@ -178,7 +180,7 @@ class Media {
      * @return The popularity score
      */
     public double getPopularityScore() {
-        return (2025 * this.year)*1.0;
+        return (2025 - this.yearReleased) * 1.0;
     }
     
     /**
@@ -188,12 +190,14 @@ class Media {
      */
     @Override
     public boolean equals(Object obj) {
-      if(this.title.toLowerCase() == obj.title.toLowerCase() && this.creator.toLowerCase() == obj.creator.toLowerCase()) {
-        return true;
-      }
-      else {
-        return false;
-      }
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Media media = (Media) obj;
+        return title.equalsIgnoreCase(media.title) && creator.equalsIgnoreCase(media.creator);
     }
 }
 
@@ -274,7 +278,7 @@ class Book extends Media {
      */
     @Override
     public String getDisplayInfo() {
-        return String.format("Book: %s by %s (%d) - ISBN: %s, Pages: %d", this.title, this.author, this.year, this.isbn, this.pages);
+        return String.format("Book: %s by %s (%d) - ISBN: %s, Pages: %d", this.title, this.creator, this.yearReleased, this.isbn, this.numberOfPages);
     }
     
     /**
@@ -283,7 +287,7 @@ class Book extends Media {
      */
     @Override
     public double getPopularityScore() {
-        return (2025 - this.year)*0.5 + (this.pages/100.0);
+        return (2025 - this.yearReleased)*0.5 + (this.numberOfPages/100.0);
     }
 }
 
@@ -364,7 +368,7 @@ class Movie extends Media {
      */
     @Override
     public String getDisplayInfo() {
-        return String.format("Movie: %s directed by %s (%d) - %d mins, Genre: %s", this.title, this.director, this.year, this.duration, this.genre);
+        return String.format("Movie: %s directed by %s (%d) - %d mins, Genre: %s", this.title, this.creator, this.yearReleased, this.duration, this.genre);
     }
     
     /**
@@ -373,7 +377,7 @@ class Movie extends Media {
      */
     @Override
     public double getPopularityScore() {
-        return (2025 * this.year)*0.8; + (this.duration/10.0)
+        return (2025 - this.yearReleased)*0.8 + (this.duration/10.0);
     }
 }
 
@@ -454,7 +458,7 @@ class Music extends Media {
      */
     @Override
     public String getDisplayInfo() {
-        return Sring.format("Music: %s by %s (%d) - %d mins, Genre: %s", this.title, this.artist, this.year, this.duration, this.genre);
+        return String.format("Music: %s by %s (%d) - %d mins, Genre: %s", this.title, this.creator, this.yearReleased, this.duration, this.genre);
     }
     
     /**
@@ -463,7 +467,7 @@ class Music extends Media {
      */
     @Override
     public double getPopularityScore() {
-        return (2025 * this.year) * 0.6 + (this.duration / 5.0);
+        return (2025 - this.yearReleased) * 0.6 + (this.duration / 5.0);
     }
 }
 
@@ -487,7 +491,58 @@ public class MediaLibrary {
      * @throws FileNotFoundException If the file is not found
      */
     public void loadMediaFromFile(String filename) throws InvalidMediaFormatException, FileNotFoundException {
-       
+        File fileToRead = new File(filename);
+        Scanner fileScanner = null;
+        try {
+            fileScanner = new Scanner(fileToRead);
+            while (fileScanner.hasNextLine()) {
+                String currentLine = fileScanner.nextLine().trim();
+                if (currentLine.isEmpty()) {
+                    continue;
+                }
+                String[] mediaParts = currentLine.split("\\|");
+                try {
+                    String mediaType = mediaParts[0];
+                    String title = mediaParts[1];
+                    String creator = mediaParts[2];
+                    int year = Integer.parseInt(mediaParts[3]);
+
+                    if (mediaType.equalsIgnoreCase("BOOK")) {
+                        if (mediaParts.length != 6) {
+                            throw new InvalidMediaFormatException("Invalid number of fields for Book: " + currentLine);
+                        }
+                        String isbn = mediaParts[4];
+                        int pages = Integer.parseInt(mediaParts[5]);
+                        Book newBook = new Book(title, creator, year, isbn, pages);
+                        this.addMedia(newBook);
+                    } else if (mediaType.equalsIgnoreCase("MOVIE")) {
+                        if (mediaParts.length != 6) {
+                            throw new InvalidMediaFormatException("Invalid number of fields for Movie: " + currentLine);
+                        }
+                        int duration = Integer.parseInt(mediaParts[4]);
+                        String genre = mediaParts[5];
+                        Movie newMovie = new Movie(title, creator, year, duration, genre);
+                        this.addMedia(newMovie);
+                    } else if (mediaType.equalsIgnoreCase("MUSIC")) {
+                        if (mediaParts.length != 6) {
+                            throw new InvalidMediaFormatException("Invalid number of fields for Music: " + currentLine);
+                        }
+                        int duration = Integer.parseInt(mediaParts[4]);
+                        String genre = mediaParts[5];
+                        Music newMusic = new Music(title, creator, year, duration, genre);
+                        this.addMedia(newMusic);
+                    } else {
+                        throw new InvalidMediaFormatException("Unknown media type: " + mediaType);
+                    }
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+                    throw new InvalidMediaFormatException("Error parsing line: " + currentLine, e);
+                }
+            }
+        } finally {
+            if (fileScanner != null) {
+                fileScanner.close();
+            }
+        }
     }
     
     /**
@@ -496,7 +551,10 @@ public class MediaLibrary {
      * @throws IllegalArgumentException If media is null
      */
     public void addMedia(Media media) {
-       
+       if (media == null) {
+            throw new IllegalArgumentException("Media cannot be null");
+        }
+        this.mediaCollection.add(media);
     }
     
     /**
@@ -506,7 +564,12 @@ public class MediaLibrary {
      * @throws MediaNotFoundException If media is not found
      */
     public Media findMediaByTitle(String title) throws MediaNotFoundException {
-        
+        for (Media media : this.mediaCollection) {
+            if (media.getTitle().equalsIgnoreCase(title)) {
+                return media;
+            }
+        }
+        throw new MediaNotFoundException(title);
     }
     
     /**
@@ -515,7 +578,13 @@ public class MediaLibrary {
      * @return ArrayList of media of the specified type
      */
     public ArrayList<Media> getMediaByType(String mediaType) {
-        
+        ArrayList<Media> result = new ArrayList<>();
+        for (Media media : this.mediaCollection) {
+            if (media.getMediaType().equalsIgnoreCase(mediaType)) {
+                result.add(media);
+            }
+        }
+        return result;
     }
     
     /**
@@ -523,7 +592,16 @@ public class MediaLibrary {
      * @return The media with highest popularity score
      */
     public Media getMostPopularMedia() {
-        
+        if (this.mediaCollection.isEmpty()) {
+            return null;
+        }
+        Media mostPopular = this.mediaCollection.get(0);
+        for (Media media : this.mediaCollection) {
+            if (media.getPopularityScore() > mostPopular.getPopularityScore()) {
+                mostPopular = media;
+            }
+        }
+        return mostPopular;
     }
     
     /**
@@ -531,7 +609,9 @@ public class MediaLibrary {
      * @return ArrayList of media sorted by year (oldest first)
      */
     public ArrayList<Media> getAllMediaSortedByYear() {
-        
+        ArrayList<Media> sortedList = new ArrayList<>(this.mediaCollection);
+        sortedList.sort((media1, media2) -> Integer.compare(media1.getYearReleased(), media2.getYearReleased()));
+        return sortedList;
     }
     
     /**
@@ -539,7 +619,27 @@ public class MediaLibrary {
      * @return String with statistics
      */
     public String getMediaStatistics() {
-        
+        int total = this.mediaCollection.size();
+        if (total == 0) {
+            return "No media in collection";
+        }
+        int books = 0;
+        int movies = 0;
+        int music = 0;
+        int totalYear = 0;
+        for (Media media : this.mediaCollection) {
+            totalYear += media.getYearReleased();
+            String mediaType = media.getMediaType();
+            if (mediaType.equals("Book")) {
+                books++;
+            } else if (mediaType.equals("Movie")) {
+                movies++;
+            } else if (mediaType.equals("Music")) {
+                music++;
+            }
+        }
+        double averageYear = (double) totalYear / total;
+        return String.format("Library Statistics:\nTotal items: %d\nBooks: %d\nMovies: %d\nMusic albums: %d\nAverage year of release: %.2f", total, books, movies, music, averageYear);
     }
     
     /**
